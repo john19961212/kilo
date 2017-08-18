@@ -27,4 +27,4 @@ under the BSD 2 clause license.
 
 list of below is writed by LiHuibo aka John19961212
  1. add text editor running mode,which is include insert mode,normal mode,
- visual mode.
+ visual mode like vim.
