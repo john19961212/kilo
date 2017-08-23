@@ -3,7 +3,7 @@ Kilo
 Usage: kilo `<filename>`
 
 Keys:
-    under insert mode
+    under insert mode:
     CTRL-S: Save
     CTRL-Q: Quit
     CTRL-F: Find string in file (ESC to exit search, arrows to navigate)
