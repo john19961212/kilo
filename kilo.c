@@ -92,6 +92,8 @@ typedef struct hlcolor {
 /* text editor running mode*/
 enum RUNNING_MODE {
     NORMAL = 0, //normal mode
+    NORMAL_REPLACE_CHAR,//replace a char
+    NORMAL_REPLACE_CHARS,//replace chars
     INSERT,    // insert mode
     VISUAL,      //visual mode
     COMMAND,   //command mode
@@ -130,6 +132,7 @@ enum KEY_ACTION {
     CTRL_S = 19,     /* Ctrl-s */
     CTRL_U = 21,     /* Ctrl-u */
     ESC = 27,        /* Escape */
+    SHIFT=0x10,
     BACKSPACE = 127, /* Backspace */
     //list of below is random assigned
             H = 104,
@@ -150,7 +153,6 @@ enum KEY_ACTION {
     W = 119,//move backward a word
     B = 98,//move forward a word
     $ = 36,//move to end of current line
-    LINE_START,//move to start of current line
     HOME_KEY,
     END_KEY,
     PAGE_UP,
@@ -277,6 +279,7 @@ int enableRawMode(int fd) {
 
 /* Read a key from the terminal put in raw mode, trying to handle
  * escape sequences. */
+ int shiftAhead=0;//mark is there a shift key ahead
 int editorReadKey(int fd) {
     int nread;
     char c, seq[3];
@@ -337,7 +340,18 @@ int editorReadKey(int fd) {
                     }
                 }
                 break;
+            case SHIFT:
+            shiftAhead=1;
+                break;
             default:
+                if (shiftAhead && c == 'a'){
+                    shiftAhead=0;
+                    return SHIFT_A;
+                }
+                if (shiftAhead && c == 'r'){
+                    shiftAhead=0;
+                    return SHIFT_R;
+                }
                 return c;
         }
     }
@@ -1354,6 +1368,15 @@ void editorMoveCursorToStart() {
         offset--;
     }
 }
+void editorRemoveCurrentChar(){//remove current char 
+    int filerow = E.rowoff + E.cy;
+    int filecol = E.coloff + E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    for(int i=filecol;i<row->size-1;i++){//move 1 step forward start from index filecol
+        *(row->chars+i)=*(row->chars+i+1);
+    }
+    row->size--;
+}
 /* Process events arriving from the standard input, which is, the user
  * is typing stuff on the terminal. */
 #define KILO_QUIT_TIMES 2
@@ -1363,6 +1386,7 @@ void editorProcessKeypress(int fd) {
     /* When the file is modified, requires Ctrl-q to be pressed N times
        before actually quitting. */
     static int quit_times = KILO_QUIT_TIMES;
+    int filerow,filecol;
     switch (E.runmode) {
         case INSERT:
 
@@ -1442,8 +1466,10 @@ void editorProcessKeypress(int fd) {
                     editorSetStatusMessage("mode: insert");
                     break;
                 case R:
+                    E.runmode = NORMAL_REPLACE_CHAR;
                     break;
                 case SHIFT_R:
+                E.runmode=NORMAL_REPLACE_CHARS;
                     break;
                 case A:
                     editorMoveCursor(ARROW_RIGHT);
@@ -1462,10 +1488,70 @@ void editorProcessKeypress(int fd) {
                 case $:
                     editorMoveCursorToEnd();
                     break;
-                case LINE_START:
+                case X:
+                editorRemoveCurrentChar();
+                    break;
+                case '^'://^
                     editorMoveCursorToStart();
                     break;
             }
+            break;
+        case NORMAL_REPLACE_CHAR:
+        switch(c){
+            case ESC:
+            E.runmode=NORMAL;
+            break;
+            default:
+                filerow = E.rowoff + E.cy;
+                filecol = E.coloff + E.cx;
+                erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+                if (filecol < row->size)
+                {
+                    editorRemoveCurrentChar();
+                    editorInsertChar(c);
+                }
+                else
+                {
+                    editorRemoveCurrentChar();
+                    editorInsertChar(c);
+                    if (E.cy < E.screenrows - 1&&filerow<E.numrows-1)
+                        E.cy++;
+                    else if(filerow<E.numrows-1&&E.cy==E.screenrows-1){
+                        E.rowoff++;
+                    }
+                    E.cx=0;
+                }
+                E.runmode = NORMAL;
+            break;
+        }
+            break;
+        case NORMAL_REPLACE_CHARS:
+        switch(c){
+            case ESC:
+            E.runmode=NORMAL;
+            break;
+            default:
+                filerow = E.rowoff + E.cy;
+                filecol = E.coloff + E.cx;
+                erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+                if (filecol < row->size)
+                {
+                    editorRemoveCurrentChar();
+                    editorInsertChar(c);
+                }
+                else
+                {
+                    editorRemoveCurrentChar();
+                    editorInsertChar(c);
+                    if (E.cy < E.screenrows - 1 && filerow < E.numrows - 1)
+                        E.cy++;
+                    else if (filerow < E.numrows - 1 && E.cy == E.screenrows - 1){
+                        E.rowoff++;
+                    }
+                    E.cx=0;
+                }
+                break;
+        }
             break;
         case VISUAL:
             break;
