@@ -149,7 +149,7 @@ enum KEY_ACTION {
     A = 97,//append string after current char and enter insert mode
     X = 120,//remove current char under normal mode
     DEL_KEY = 200,
-    SHIFT_A,//append string after the end of current line and enter insert mode
+    SHIFT_A=65,//append string after the end of current line and enter insert mode
     W = 119,//move backward a word
     B = 98,//move forward a word
     $ = 36,//move to end of current line
@@ -340,18 +340,7 @@ int editorReadKey(int fd) {
                     }
                 }
                 break;
-            case SHIFT:
-            shiftAhead=1;
-                break;
             default:
-                if (shiftAhead && c == 'a'){
-                    shiftAhead=0;
-                    return SHIFT_A;
-                }
-                if (shiftAhead && c == 'r'){
-                    shiftAhead=0;
-                    return SHIFT_R;
-                }
                 return c;
         }
     }
