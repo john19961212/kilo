@@ -2,8 +2,8 @@ Kilo
 ===
 Usage: kilo `<filename>`
 
-Keys:
-    under insert mode:
+## list of below is under insert mode
+### Keys:
     CTRL-S: Save
     CTRL-Q: Quit
     CTRL-F: Find string in file (ESC to exit search, arrows to navigate)
