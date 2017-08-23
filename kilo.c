@@ -1372,10 +1372,7 @@ void editorRemoveCurrentChar(){//remove current char
     int filerow = E.rowoff + E.cy;
     int filecol = E.coloff + E.cx;
     erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
-    for(int i=filecol;i<row->size-1;i++){//move 1 step forward start from index filecol
-        *(row->chars+i)=*(row->chars+i+1);
-    }
-    row->size--;
+    editorRowDelChar(row,filecol);
 }
 /* Process events arriving from the standard input, which is, the user
  * is typing stuff on the terminal. */
